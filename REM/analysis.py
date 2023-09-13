@@ -458,7 +458,9 @@ class AnalysesOrganizer(dict):
         """
         super(AnalysesOrganizer, self).__init__()
 
-    def to_excel(self, filename):
+
+    @property
+    def df(self):
         s = []
         for sample in self.keys():
             values = []
@@ -474,9 +476,32 @@ class AnalysesOrganizer(dict):
         df = pd.concat(s, axis=1)
         df = df.T
         df.index = self.keys()
+
+        return df
+
+    @property
+    def df_int_index(self):
+        s = []
+        for sample in self.keys():
+            values = []
+            for phase in self[sample].phases():
+                values.append(self[sample][phase])
+
+            data = {list(self[sample].phases())[i]: values[i] for i in range(len(values))}
+
+            pa = PhaseAnalysis(data=data, normalized=True)
+            pa = pa.to_wt()
+            s.append(pd.Series(data=pa.values(), index=pa.keys()))
+
+        df = pd.concat(s, axis=1)
+        df = df.T
+        df.insert(0, "Id", self.keys())
+
+        return df
+    def to_excel(self, filename):
+        df = self.df
         if filename.split(".")[-1] != "xlsx":
             filename += ".xlsx"
-
         df.to_excel(filename)
 
     def __missing__(self, sample):
